@@ -21,7 +21,9 @@ class SMSerMainWindow(QtGui.QMainWindow, Ui_MainWindow):
         #Signal handler connections
         self.connect(self.message_timer, QtCore.SIGNAL("timeout()"), self.timer_event)
         self.connect(self.lstMsgs, QtCore.SIGNAL("currentRowChanged(int)"), self.show_contact_messages)
-        #
+        self.connect(self.lstContacts, QtCore.SIGNAL("currentRowChanged(int)"), self.show_contact_info)
+        self.connect(self.lstContacts, QtCore.SIGNAL("doubleClicked(int)"), self.show_contact_info)
+
         #self.connect(self.actionAdd, QtCore.SIGNAL("triggered()"), self.add_recipe)
         #self.connect(self.actionEdit, QtCore.SIGNAL("triggered()"), self.edit_recipe)
         #self.connect(self.actionDelete, QtCore.SIGNAL("triggered()"), self.delete_recipe)
@@ -37,11 +39,14 @@ class SMSerMainWindow(QtGui.QMainWindow, Ui_MainWindow):
         self.statusbar.showMessage("Loaded %i contacts from the phone" % len(self.contacts))
         self.btnSendSMS.setEnabled(False)
         self.load_messages()
+        self.load_contacts()
 
         self.current_contact = None
         self.current_contact_number = None
         self.contact_msgs = []
         self.last_msg_id = 0
+        # This dictionary keeps track of all messages received from and sent to a contact. Contact's name is the key
+        self.messages_log = {}
 
     def timer_event(self):
         self.load_messages()
@@ -69,16 +74,29 @@ class SMSerMainWindow(QtGui.QMainWindow, Ui_MainWindow):
             self.lstMsgs.addItem(contact_name + "\n " + msg_content)
 
     def show_contact_messages(self, current_row):
-        """
-        Handler for currentRowChanged signal for recipes list
-        """
-
         list_item = self.lstMsgs.item(current_row)
         if list_item:
             contact_name = list_item.text()
             contact_name = contact_name.split('\n')[0]
             #print(contact_name)
             self.display_contact_messages(contact_name)
+
+    def load_contacts(self):
+        self.lstContacts.clear()
+        contact_names = sorted(self.contacts.keys())
+        for C in contact_names:
+            self.lstContacts.addItem(C)
+
+    def show_contact_info(self, current_row):
+        list_item = self.lstContacts.item(current_row)
+        if list_item:
+            contact_name = list_item.text()
+            numbers = self.contacts[contact_name]
+            html = 'Mobile numbers for <b>%s</b><br />' % contact_name
+            for num in numbers:
+                html += num + '<br />\n'
+
+            self.txtContactDetails.setHtml(html)
 
     def get_contact_messages(self, contact_name):
         contact_msgs = []
